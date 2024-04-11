@@ -1,6 +1,5 @@
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.activemq.RedeliveryPolicy;
 
 import javax.jms.*;
 
@@ -73,20 +72,17 @@ public class ActiveMQClient {
                 Destination destination = session.createTopic(TOPIC_NAME);
                 MessageConsumer consumer = session.createConsumer(destination);
 
-                consumer.setMessageListener(new MessageListener() {
-                    @Override
-                    public void onMessage(Message message) {
-                        if  (message instanceof TextMessage) {
+                consumer.setMessageListener(message -> {
+                    if  (message instanceof TextMessage) {
+                        try {
+                            System.out.println("Consumer received: " + ((TextMessage) message).getText());
+                            throw new RuntimeException("Simulated processing error");
+                        } catch (Exception e) {
+                            System.err.println(e.getMessage());
                             try {
-                                System.out.println("Consumer received: " + ((TextMessage) message).getText());
-                                throw new RuntimeException("Simulated processing error");
-                            } catch (Exception e) {
-                                System.err.println(e.getMessage());
-                                try {
-                                    session.recover();
-                                } catch (JMSException ex) {
-                                    throw new RuntimeException(ex);
-                                }
+                                session.recover();
+                            } catch (JMSException ex) {
+                                throw new RuntimeException(ex);
                             }
                         }
                     }
